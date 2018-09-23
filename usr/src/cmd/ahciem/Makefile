@@ -10,40 +10,30 @@
 #
 
 #
-# Copyright 2015 Nexenta Systems, Inc.
 # Copyright (c) 2018, Joyent, Inc.
 #
 
-
-PROG= nvmeadm
-
-OBJS= nvmeadm.o nvmeadm_dev.o nvmeadm_print.o
-SRCS= $(OBJS:%.o=%.c)
+PROG= ahciem
+LINTPROGS= $(PROG:%=%.ln)
 
 include ../Makefile.cmd
-include ../Makefile.ctf
+
+ROOTCMDDIR = $(ROOTLIB)/ahci
+CPPFLAGS += -I$(SRC)/uts/common/
+CFLAGS += $(CCVERBOSE)
+LDLIBS += -ldevinfo
 
 .KEEP_STATE:
 
-CFLAGS +=	$(CCVERBOSE)
-LDLIBS +=	-ldevinfo
-CSTD=	$(CSTD_GNU99)
-
 all: $(PROG)
 
-$(PROG): $(OBJS)
-	$(LINK.c) -o $@ $(OBJS) $(LDLIBS)
-	$(POST_PROCESS)
-
-%.o: %.c
-	$(COMPILE.c) $<
-	$(POST_PROCESS_O)
-
-install: all $(ROOTUSRSBINPROG)
+install: all $(ROOTCMD)
 
 clean:
-	$(RM) $(OBJS) $(PROG)
 
-lint:	lint_SRCS
+%.ln: %.c
+	$(LINT.c) $< $(LDLIBS)
+
+lint:	$(LINTPROGS)
 
 include ../Makefile.targ
