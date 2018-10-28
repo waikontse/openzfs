@@ -198,20 +198,21 @@ def gen_files(root, parent, paths, exclude):
         if not select:
             select = lambda x: True
 
-        for f in git_file_list(parent, paths):
-            f = relpath(f, '.')
+        for abspath in git_file_list(parent, paths):
+            path = relpath(abspath, '.')
             try:
-                res = git("diff %s HEAD %s" % (parent, f))
+                res = git("diff %s HEAD %s" % (parent, path))
             except GitError, e:
-                # This ignores all the errors that can be thrown. Usually, this means
-                # that git returned non-zero because the file doesn't exist, but it
-                # could also fail if git can't create a new file or it can't be
-                # executed.  Such errors are 1) unlikely, and 2) will be caught by other
-                # invocations of git().
+                # This ignores all the errors that can be thrown. Usually, this
+                # means that git returned non-zero because the file doesn't
+                # exist, but it could also fail if git can't create a new file
+                # or it can't be executed.  Such errors are 1) unlikely, and 2)
+                # will be caught by other invocations of git().
                 continue
             empty = not res.readline()
-            if (os.path.isfile(f) and not empty and select(f) and not exclude(f)):
-                yield f
+            if (os.path.isfile(path) and not empty and
+                select(path) and not exclude(abspath)):
+                yield path
     return ret
 
 
@@ -374,27 +375,25 @@ def main(cmd, args):
     checkname = None
 
     try:
-        opts, args = getopt.getopt(args, 'c:p:')
+        opts, args = getopt.getopt(args, 'b:c:p:')
     except getopt.GetoptError, e:
         sys.stderr.write(str(e) + '\n')
         sys.stderr.write("Usage: %s [-c check] [-p branch] [path...]\n" % cmd)
         sys.exit(1)
 
     for opt, arg in opts:
-        # backwards compatibility
-        if opt == '-b':
+        # We accept "-b" as an alias of "-p" for backwards compatibility.
+        if opt == '-p' or opt == '-b':
             parent_branch = arg
         elif opt == '-c':
             checkname = arg
-        elif opt == '-p':
-            parent_branch = arg
 
     if not parent_branch:
         parent_branch = git_parent_branch(git_branch())
 
     if checkname is None:
         if cmd == 'git-pbchk':
-            checkname= 'pbchk'
+            checkname = 'pbchk'
         else:
             checkname = 'nits'
 
